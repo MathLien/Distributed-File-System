@@ -1,4 +1,5 @@
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 public class FileMetadata {
@@ -13,7 +14,7 @@ public class FileMetadata {
      * The MD5 hash of the chunks
      */
     public byte[] chunksHash = {};
-    private List<List<String>> chunksLocations = {};
+    private List<List<String>> chunksLocations = new ArrayList<>(); //TODO : Optimiser ça
 
     public FileMetadata(long id, String pathName) {
         this.id = id;
@@ -25,17 +26,3 @@ public class FileMetadata {
     }
 }
 
-public class Chunk {
-    public final long fileID;
-    public final int chunkID;
-    private final byte[] data;
-
-    public Chunk(long fileID, int chunkID, byte[] data) {
-        this.fileID = fileID;
-        this.chunkID = chunkID;
-        this.data = data;
-    }
-    public Chunk(File chunkFile){
-        throw new Exception("Not implemented");
-    }
-}

@@ -18,6 +18,11 @@ public class NameServer {
      */
     private long currentFileIndex = 0;
 
+    public NameServer() {
+        //TODO : Read from file or generate
+        this.uuid = "";
+    }
+
     private long newFile(String pathName) throws FileExists {
         if (fileMap.putIfAbsent(pathName, File(currentFileIndex, pathName)) != null) {
             throw new FileExists();
@@ -34,7 +39,7 @@ public class NameServer {
      * @param file The fileMetadata objects of the file
      * @param chunk The chunk of data to write.
      */
-    private writeChunk(FileMetadata file, Chunk chunk) throws Exception {
+    private void writeChunk(FileMetadata file, Chunk chunk) throws Exception {
         int nbCopies = 0;
         int nbEssaye = 0;
         while (nbEssaye < dataServers.length && nbCopies <replication){
@@ -54,6 +59,7 @@ public class NameServer {
         }
 
     }
+
 
 
 
