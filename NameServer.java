@@ -1,7 +1,18 @@
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 import exceptions.FileExists;
+import networkMessages.CloseFileMessage;
+import networkMessages.CreateFileMessage;
+import networkMessages.ErrorMessage;
+import networkMessages.GetMetadataMessage;
+import networkMessages.MetadataResponse;
+import networkMessages.OkMessage;
 
 public class NameServer {
     private final String uuid;
@@ -16,7 +27,7 @@ public class NameServer {
     /**
      * The next file ID to be used. File Id are never reused, this counter only increases
      */
-    private long currentFileIndex = 0;
+    private long currentFileIndex = 1;
 
     public NameServer() {
         //TODO : Read from file or generate
@@ -24,7 +35,7 @@ public class NameServer {
     }
 
     private long newFile(String pathName) throws FileExists {
-        if (fileMap.putIfAbsent(pathName, File(currentFileIndex, pathName)) != null) {
+        if (fileMap.putIfAbsent(pathName, new FileMetadata(currentFileIndex, pathName)) != null) {
             throw new FileExists();
         } else {
             currentFileIndex++;
@@ -58,6 +69,74 @@ public class NameServer {
             throw new Exception("Could not write the file");
         }
 
+    }
+
+    public void start(int port) throws IOException {
+        try (ServerSocket serverSocket = new ServerSocket(port)) {
+            while (true) {
+                Socket client = serverSocket.accept();
+                new Thread(() -> handleClient(client)).start();
+            }
+        }
+    }
+
+    private void handleClient(Socket client) {
+        try (Socket c = client;
+             ObjectOutputStream oos = new ObjectOutputStream(c.getOutputStream());
+             ObjectInputStream ois = new ObjectInputStream(c.getInputStream())) {
+
+            Object obj;
+            while ((obj = ois.readObject()) != null) {
+                if (obj instanceof CreateFileMessage msg) {
+                    try {
+                        newFile(msg.fileName);
+                        oos.writeObject(new OkMessage());
+                        oos.flush();
+                    } catch (FileExists e) {
+                        oos.writeObject(new ErrorMessage("File exists"));
+                        oos.flush();
+                    }
+                } else if (obj instanceof GetMetadataMessage msg) {
+                    FileMetadata metadata = fileMap.get(msg.fileName);
+                    if (metadata == null) {
+                        oos.writeObject(new MetadataResponse(false, 0L));
+                    } else {
+                        oos.writeObject(new MetadataResponse(true, metadata.id));
+                    }
+                    oos.flush();
+                } else if (obj instanceof Chunk chunk) {
+                    FileMetadata metadata = fileMap.get(chunk.fileName);
+                    if (metadata == null) {
+                        oos.writeObject(new ErrorMessage("Unknown file"));
+                        oos.flush();
+                        continue;
+                    }
+                    try {
+                        writeChunk(metadata, chunk);
+                        oos.writeObject(new OkMessage());
+                        oos.flush();
+                    } catch (Exception e) {
+                        oos.writeObject(new ErrorMessage("Write failed"));
+                        oos.flush();
+                    }
+                } else if (obj instanceof CloseFileMessage) {
+                    oos.writeObject(new OkMessage());
+                    oos.flush();
+                    break;
+                } else {
+                    oos.writeObject(new ErrorMessage("Unknown message"));
+                    oos.flush();
+                }
+            }
+        } catch (Exception ignored) {
+            System.out.println(ignored.getMessage());
+        }
+    }
+
+    private void sendChunkToDataServer(ServerStatus server, Chunk chunk) {
+        // TODO: implement networking to DataServer
+        System.out.println(chunk.toString());
+        throw new RuntimeException("Not implemented");
     }
 
 

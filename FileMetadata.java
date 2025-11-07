@@ -1,4 +1,3 @@
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,6 +21,9 @@ public class FileMetadata {
     }
 
     public void addServerToChunk(int chunkID, String uuid) {
+        while (chunksLocations.size() <= chunkID) {
+            chunksLocations.add(new ArrayList<>());
+        }
         chunksLocations.get(chunkID).add(uuid);
     }
 }
