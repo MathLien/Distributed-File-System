@@ -1,5 +1,6 @@
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -86,14 +87,21 @@ public class NameServer {
              ObjectInputStream ois = new ObjectInputStream(c.getInputStream())) {
 
             Object obj;
-            while ((obj = ois.readObject()) != null) {
+            while (true) {
+                try {
+                    obj = ois.readObject();
+                } catch (EOFException e) {
+                    // Client closed connection normally
+                    break;
+                }
+                
                 if (obj instanceof CreateFileMessage msg) {
                     try {
                         newFile(msg.fileName);
                         oos.writeObject(new OkMessage());
                         oos.flush();
                     } catch (FileExists e) {
-                        oos.writeObject(new ErrorMessage("File exists"));
+                        oos.writeObject(new ErrorMessage("File exists", msg.fileName));
                         oos.flush();
                     }
                 } else if (obj instanceof GetMetadataMessage msg) {
@@ -107,7 +115,7 @@ public class NameServer {
                 } else if (obj instanceof Chunk chunk) {
                     FileMetadata metadata = fileMap.get(chunk.fileName);
                     if (metadata == null) {
-                        oos.writeObject(new ErrorMessage("Unknown file"));
+                        oos.writeObject(new ErrorMessage("Unknown file", chunk.fileName, chunk.chunkID));
                         oos.flush();
                         continue;
                     }
@@ -116,7 +124,7 @@ public class NameServer {
                         oos.writeObject(new OkMessage());
                         oos.flush();
                     } catch (Exception e) {
-                        oos.writeObject(new ErrorMessage("Write failed"));
+                        oos.writeObject(new ErrorMessage("Write failed: " + e.getMessage(), chunk.fileName, chunk.chunkID));
                         oos.flush();
                     }
                 } else if (obj instanceof CloseFileMessage) {
@@ -128,8 +136,9 @@ public class NameServer {
                     oos.flush();
                 }
             }
-        } catch (Exception ignored) {
-            System.out.println(ignored.getMessage());
+        } catch (Exception e) {
+            System.err.println("Error handling client: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
