@@ -32,6 +32,20 @@ public class CLI {
                 client.putFile(path);
                 System.out.println("Done.");
                 break;
+            case "dataserver":
+                // Usage: dataserver <uuid> <nameServerIp> <nameServerPort> <dataServerPort>
+                if (args.length != 5) {
+                    System.err.println("Usage: dataserver <uuid> <nameServerIp> <nameServerPort> <dataServerPort>");
+                    System.exit(1);
+                }
+                String uuid = args[1];
+                String nameServerIp = args[2];
+                int nameServerPort = Integer.parseInt(args[3]);
+                int dataServerPort = Integer.parseInt(args[4]);
+                DataServer ds = new DataServer(uuid, nameServerIp, nameServerPort, dataServerPort);
+                System.out.println("Starting DataServer " + uuid + " on port " + dataServerPort + "...");
+                ds.start();
+                break;
             default:
                 System.err.println("Unknown command: " + cmd);
                 printHelp();
@@ -41,9 +55,10 @@ public class CLI {
     private static void printHelp() {
         System.out.println("Distributed-File-System CLI");
         System.out.println("Commands:");
-        System.out.println("  nameserver <port>           Start the NameServer on port");
-        System.out.println("  put <serverIp> <port> <path>  Upload file to NameServer");
-        System.out.println("  help                        Show this help");
+        System.out.println("  nameserver <port>                              Start the NameServer on port");
+        System.out.println("  dataserver <uuid> <nameServerIp> <nameServerPort> <dataServerPort>  Start a DataServer");
+        System.out.println("  put <serverIp> <port> <path>                   Upload file to NameServer");
+        System.out.println("  help                                           Show this help");
     }
 }
 

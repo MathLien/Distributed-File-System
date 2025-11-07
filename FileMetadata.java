@@ -1,7 +1,8 @@
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class FileMetadata {
+public class FileMetadata implements Serializable {
     /* Taille maximale d'un chunk (en octet)
      */
     public static final long ChunkSize = 1024 * 1024 * 4; //4MiB
