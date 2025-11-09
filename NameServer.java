@@ -12,7 +12,6 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
@@ -50,8 +49,15 @@ public class NameServer {
         
         // Register shutdown hook to save state on exit
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            closeAllDataServerConnections();
             saveState();
         }));
+    }
+    
+    private void closeAllDataServerConnections() {
+        for (ServerStatus server : dataServers.values()) {
+            server.closeConnection();
+        }
     }
     
     private static class NameServerState implements Serializable {
@@ -182,6 +188,8 @@ public class NameServer {
             if (saveTimer != null) {
                 saveTimer.cancel();
             }
+            // Close all persistent connections to DataServers
+            closeAllDataServerConnections();
             saveState();
         }
     }
@@ -261,6 +269,9 @@ public class NameServer {
         status.lastSeen = System.currentTimeMillis() / 1000; // Unix timestamp
         dataServers.put(msg.uuid, status);
         totalFreeSpace += msg.freeSpace;
+        
+        status.establishConnection();
+        
         System.out.println("Registered DataServer: " + msg.uuid + " at " + ipAddress + ":" + msg.port + 
             " (free: " + msg.freeSpace + ", occupied: " + msg.occupiedSpace + ")");
     }
@@ -285,26 +296,28 @@ public class NameServer {
     }
 
     private void sendChunkToDataServer(ServerStatus server, Chunk chunk) {
-        try (Socket socket = new Socket(server.ipAddress, server.port);
-             ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-             ObjectInputStream ois = new ObjectInputStream(socket.getInputStream())) {
+        synchronized (server.getConnectionLock()) {
+            ObjectOutputStream oos = server.getOos();
+            ObjectInputStream ois = server.getOis();
             
-            oos.writeObject(chunk);
-            oos.flush();
-            
-            Object response = ois.readObject();
-            if (response instanceof OkMessage) {
-                updateLastSeen(server.uuid);
-                // Update server's free space (approximate - we don't know exact chunk size)
-                server.freeSpace -= chunk.getData().length;
-                server.occupiedSpace += chunk.getData().length;
-            } else if (response instanceof ErrorMessage error) {
-                throw new RuntimeException("DataServer " +server.uuid + " error: " + error.message);
-            } else {
-                throw new RuntimeException("Unexpected response from DataServer " + server.uuid);
+            try {
+                oos.writeObject(chunk);
+                oos.flush();
+                
+                Object response = ois.readObject();
+                if (response instanceof OkMessage) {
+                    updateLastSeen(server.uuid);
+                    // Update server's free space (approximate - we don't know exact chunk size)
+                    server.freeSpace -= chunk.getData().length;
+                    server.occupiedSpace += chunk.getData().length;
+                } else if (response instanceof ErrorMessage error) {
+                    throw new RuntimeException("DataServer " + server.uuid + " error: " + error.message);
+                } else {
+                    throw new RuntimeException("Unexpected response from DataServer " + server.uuid);
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to send chunk to DataServer " + server.uuid + ": " + e.getMessage(), e);
             }
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to send chunk to DataServer " + server.uuid + ": " + e.getMessage(), e);
         }
     }
 
