@@ -1,4 +1,3 @@
-import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
@@ -14,6 +13,19 @@ public class ServerStatus {
     // Persistent connection to DataServer
     private Socket socket;
     private ObjectOutputStream oos;
+
+    public void setSocket(Socket socket) {
+        this.socket = socket;
+    }
+
+    public void setOos(ObjectOutputStream oos) {
+        this.oos = oos;
+    }
+
+    public void setOis(ObjectInputStream ois) {
+        this.ois = ois;
+    }
+
     private ObjectInputStream ois;
     private final Object connectionLock = new Object();
 
@@ -45,24 +57,6 @@ public class ServerStatus {
     
     public Object getConnectionLock() {
         return connectionLock;
-    }
-    
-    public void establishConnection() {
-        synchronized (connectionLock) {
-            // Close existing connection if any
-            closeConnection();
-            
-            try {
-                socket = new Socket(ipAddress, port);
-                oos = new ObjectOutputStream(socket.getOutputStream());
-                ois = new ObjectInputStream(socket.getInputStream());
-                
-                System.out.println("Established persistent connection to DataServer " + uuid);
-            } catch (IOException e) {
-                System.err.println("Failed to establish connection to DataServer " + uuid +" (" +ipAddress+":"+port+ ") : " + e.getMessage());
-                closeConnection();
-            }
-        }
     }
     
     public void closeConnection() {

@@ -1,4 +1,5 @@
 
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.io.EOFException;
 import java.io.FileInputStream;
@@ -94,14 +95,14 @@ public class NameServer {
         Path statePath = Path.of(STATE_FILE);
         if (!Files.exists(statePath)) {
             // Generate UUID if no state file exists
-            this.uuid = java.util.UUID.randomUUID().toString();
+            this.uuid = UUID.randomUUID().toString();
             System.out.println("No state file found. Starting fresh with UUID: " + uuid);
             return;
         }
         
         try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(STATE_FILE))) {
             NameServerState state = (NameServerState) ois.readObject();
-            this.uuid = state.uuid != null ? state.uuid : java.util.UUID.randomUUID().toString();
+            this.uuid = state.uuid != null ? state.uuid : UUID.randomUUID().toString();
             this.currentFileIndex = state.currentFileIndex;
             
             if (state.fileMap != null) {
@@ -119,7 +120,7 @@ public class NameServer {
         } catch (IOException | ClassNotFoundException e) {
             System.err.println("Failed to load state: " + e.getMessage());
             System.err.println("Starting fresh...");
-            this.uuid = java.util.UUID.randomUUID().toString();
+            this.uuid = UUID.randomUUID().toString();
         }
     }
 
@@ -157,6 +158,7 @@ public class NameServer {
                 nbCopies++;
                 file.addServerToChunk(chunk.chunkID, tryServer.uuid);
             } catch (RuntimeException e) {
+                e.printStackTrace();
                 //Ce serveur n'était manifestement pas disponible, essayons en un autre.
             }
         }
@@ -195,9 +197,12 @@ public class NameServer {
     }
 
     private void handleClient(Socket client) {
-        try (Socket c = client;
-             ObjectOutputStream oos = new ObjectOutputStream(c.getOutputStream());
-             ObjectInputStream ois = new ObjectInputStream(c.getInputStream())) {
+        boolean isADataServer = false;
+        ObjectOutputStream oos =null;
+        ObjectInputStream ois = null;
+        try {
+             oos = new ObjectOutputStream(client.getOutputStream());
+             ois = new ObjectInputStream(client.getInputStream());
 
             Object obj;
             while (true) {
@@ -205,6 +210,7 @@ public class NameServer {
                     obj = ois.readObject();
                 } catch (EOFException e) {
                     // Client closed connection normally
+                    System.out.println("Connection closed");
                     break;
                 }
                 
@@ -245,10 +251,10 @@ public class NameServer {
                     oos.flush();
                     break;
                 } else if (obj instanceof RegisterDataServerMessage msg) {
-                    registerDataServer(msg, c.getRemoteSocketAddress().toString());
+                    registerDataServer(msg, client.getRemoteSocketAddress().toString(), client, ois, oos);
                     updateLastSeen(msg.uuid);
-                    oos.writeObject(new OkMessage());
-                    oos.flush();
+                    isADataServer = true;
+                    break;
                 } else {
                     oos.writeObject(new ErrorMessage("Unknown message"));
                     oos.flush();
@@ -257,10 +263,29 @@ public class NameServer {
         } catch (Exception e) {
             System.err.println("Error handling client: " + e.getMessage());
             e.printStackTrace();
+        } finally {
+            //If it is not a connection initialized by a dataserver, we close it.
+            if (!isADataServer){
+                try {
+                    ois.close();
+                } catch (IOException e) {
+
+                }
+                try {
+                    oos.close();
+                } catch (IOException e) {
+
+                }
+                try {
+                    client.close();
+                } catch (IOException e) {
+
+                }
+            }
         }
     }
 
-    private void registerDataServer(RegisterDataServerMessage msg, String remoteAddress) {
+    private void registerDataServer(RegisterDataServerMessage msg, String remoteAddress, Socket socket, ObjectInputStream ois, ObjectOutputStream oos) throws IOException {
         // Use IP from message (which is the DataServer's local IP) or fallback to remote address
         String ipAddress = msg.ipAddress != null && !msg.ipAddress.isEmpty() 
             ? msg.ipAddress 
@@ -269,9 +294,13 @@ public class NameServer {
         status.lastSeen = System.currentTimeMillis() / 1000; // Unix timestamp
         dataServers.put(msg.uuid, status);
         totalFreeSpace += msg.freeSpace;
-        
-        status.establishConnection();
-        
+
+        status.setOis(ois);
+        status.setOos(oos);
+        status.setSocket(socket);
+
+        oos.writeObject(new OkMessage());
+        oos.flush();
         System.out.println("Registered DataServer: " + msg.uuid + " at " + ipAddress + ":" + msg.port + 
             " (free: " + msg.freeSpace + ", occupied: " + msg.occupiedSpace + ")");
     }

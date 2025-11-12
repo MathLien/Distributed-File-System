@@ -21,6 +21,11 @@ public class DataServer {
     private long occupiedSpace;
     private String localIPAddress;
 
+    // We save the connection initiated to the data server to use it later for data transfer.
+    private Socket socketToNameServer;
+    private ObjectInputStream ois;
+    private ObjectOutputStream oos;
+
     public DataServer(String uuid, String nameServerIPAddress, int nameServerPort, int dataServerPort) {
         this.uuid = uuid;
         this.nameServerIPAddress = nameServerIPAddress;
@@ -39,16 +44,14 @@ public class DataServer {
     }
 
     public void start() throws IOException {
-        // Register with NameServer
-        registerWithNameServer();
-        
         // Start server to receive chunks
         try (ServerSocket serverSocket = new ServerSocket(dataServerPort)) {
             System.out.println("DataServer " + uuid + " listening on port " + dataServerPort);
-            while (true) {
-                Socket client = serverSocket.accept();
-                new Thread(() -> handleClient(client)).start();
-            }
+
+            registerWithNameServer();
+            Socket client = serverSocket.accept();
+            //new Thread(() -> handleClient(client)).start();
+
         }
     }
 
@@ -68,6 +71,13 @@ public class DataServer {
             Object response = ois.readObject();
             if (response instanceof OkMessage) {
                 System.out.println("Successfully registered with NameServer");
+                this.ois = ois;
+                this.oos = oos;
+                this.socketToNameServer = socket;
+
+                //Vu qu'on ne se connecte qu'une seule fois au nameServer, we can do it only once in a blocking way
+                //Sorry for the English-French mix.
+                handleClient(this.ois,this.oos);
             } else if (response instanceof ErrorMessage error) {
                 System.err.println("Failed to register with NameServer: " + error.message);
             }
@@ -78,27 +88,36 @@ public class DataServer {
         }
     }
 
-    private void handleClient(Socket client) {
-        try (Socket c = client;
-             ObjectOutputStream oos = new ObjectOutputStream(c.getOutputStream());
-             ObjectInputStream ois = new ObjectInputStream(c.getInputStream())) {
-            
+//    private void handleClient(Socket client) {
+//        try (Socket c = client;
+//             ObjectOutputStream oos = new ObjectOutputStream(c.getOutputStream());
+//             ObjectInputStream ois = new ObjectInputStream(c.getInputStream())){
+//            handleClient(ois,oos);
+//        } catch (IOException e) {
+//            System.err.println("Error handling data client : "+e.getMessage());
+//            throw new RuntimeException(e);
+//        }
+//    }
+
+    private void handleClient(ObjectInputStream ois, ObjectOutputStream oos){
+        try {
             Object obj;
             while (true) {
                 try {
                     obj = ois.readObject();
                 } catch (EOFException e) {
+                    e.printStackTrace();
                     break;
                 }
-                
+
                 if (obj instanceof Chunk chunk) {
                     try {
                         writeChunk(chunk);
                         oos.writeObject(new OkMessage()); //TODO : meilleur accusé de réception ?
                         oos.flush();
                     } catch (IOException e) {
-                        oos.writeObject(new ErrorMessage("Failed to write chunk: " + e.getMessage(), 
-                            chunk.fileName, chunk.chunkID));
+                        oos.writeObject(new ErrorMessage("Failed to write chunk: " + e.getMessage(),
+                                chunk.fileName, chunk.chunkID));
                         oos.flush();
                     }
                 } else {
@@ -109,6 +128,7 @@ public class DataServer {
         } catch (Exception e) {
             System.err.println("Error handling client: " + e.getMessage());
             e.printStackTrace();
+            throw new RuntimeException(e);
         }
     }
 
