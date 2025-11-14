@@ -43,7 +43,6 @@ public class NameServer {
     private long currentFileIndex = 1;
     
     private static final String STATE_FILE = "nameserver_state.dat";
-    private Timer saveTimer;
 
     public NameServer() {
         loadState();
@@ -62,7 +61,8 @@ public class NameServer {
     }
     
     private static class NameServerState implements Serializable {
-        private static final long serialVersionUID = 1L;
+        //@Serial
+        //private static final long serialVersionUID = 1L;
         Map<String, FileMetadata> fileMap;
         Map<String, FileMetadata> missingReplicas;
         String uuid;
@@ -145,6 +145,7 @@ public class NameServer {
         if (availableServers.isEmpty()) {
             throw new Exception("No data servers available");
         }
+        file.setChunkHash(chunk);
         
         int nbCopies = 0;
         int nbEssaye = 0;
@@ -169,7 +170,7 @@ public class NameServer {
 
     public void start(int port) throws IOException {
         // Start periodic save timer (every 3 minutes)
-        saveTimer = new Timer(true); // daemon thread
+        Timer saveTimer = new Timer(true); // daemon thread
         saveTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
@@ -187,9 +188,7 @@ public class NameServer {
             }
         } finally {
             // Save state when server stops
-            if (saveTimer != null) {
-                saveTimer.cancel();
-            }
+            saveTimer.cancel();
             // Close all persistent connections to DataServers
             closeAllDataServerConnections();
             saveState();
@@ -213,7 +212,7 @@ public class NameServer {
                     System.out.println("Connection closed");
                     break;
                 }
-                
+
                 if (obj instanceof CreateFileMessage msg) {
                     try {
                         newFile(msg.fileName);
