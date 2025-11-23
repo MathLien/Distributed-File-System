@@ -17,11 +17,13 @@ public class Client {
     private final String nameServerIPAddress;
     private final int nameServerPort;
 
+    // Client Class constructor
     public Client(String nameServerIPAddress, int nameServerPort) {
         this.nameServerIPAddress = nameServerIPAddress;
         this.nameServerPort = nameServerPort;
     }
 
+    // Error handling method
     private void checkForError(Object response, String operation) throws IOException {
         if (response instanceof ErrorMessage error) {
             StringBuilder errorMsg = new StringBuilder(operation);
@@ -36,16 +38,20 @@ public class Client {
         }
     }
 
+    // Upload files from Client to Distributed File System
     public void putFile(String path) throws Exception {
+        // Initialization
         String fileName = Path.of(path).getFileName().toString();
         int chunkSize = (int) FileMetadata.ChunkSize;
         int chunkIndex = 0;
 
+        // Establish a connection to NameServer
         try (Socket socket = new Socket(nameServerIPAddress, nameServerPort);
              ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
              ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
              InputStream in = Files.newInputStream(Path.of(path))) {
 
+            // Create file on a server
             oos.writeObject(new CreateFileMessage(fileName));
             oos.flush();
             Object ack = ois.readObject();
@@ -54,6 +60,7 @@ public class Client {
                 throw new IOException("CreateFile not acknowledged by NameServer");
             }
 
+            // Get file metadata
             oos.writeObject(new GetMetadataMessage(fileName));
             oos.flush();
             Object metaObj = ois.readObject();
@@ -67,10 +74,12 @@ public class Client {
             }
             long fileId = meta.fileId;
 
+            // Send file chunks to NameServer
             byte[] buffer = new byte[chunkSize];
             int read;
             while ((read = in.read(buffer)) != -1) {
                 byte[] data;
+                // Chunking of file
                 if (read == buffer.length) {
                     data = buffer;
                 } else {

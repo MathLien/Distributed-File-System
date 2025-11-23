@@ -136,7 +136,7 @@ public class NameServer {
 
     /**
      * Sends the chunk to the data servers, managing load balancing  and replication etc.
-     * Write in the FileMetadata the location where the chunk have been stored
+     * Write in the FileMetadata the location where the chunks have been stored
      * @param file The fileMetadata objects of the file
      * @param chunk The chunk of data to write.
      */
