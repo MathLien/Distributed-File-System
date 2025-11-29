@@ -1,10 +1,10 @@
 package networkMessages;
 import java.io.Serializable;
 
-public class CloseFileMessage implements Serializable {
+public class EndOfFile implements Serializable {
     public final String fileName;
 
-    public CloseFileMessage(String fileName) {
+    public EndOfFile(String fileName) {
         this.fileName = fileName;
     }
 }

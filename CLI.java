@@ -1,3 +1,5 @@
+import networkMessages.ReadFile;
+
 public class CLI {
     public static void main(String[] args) throws Exception {
         if (args.length == 0 || "help".equalsIgnoreCase(args[0])) {
@@ -46,6 +48,25 @@ public class CLI {
                 System.out.println("Starting DataServer " + uuid + " on port " + dataServerPort + "...");
                 ds.start();
                 break;
+            case "read":
+                if (args.length != 4 && args.length !=5) {
+                    System.err.println("Usage: read <nameServerIp> <nameServerPort> <filePath> [offset]");
+                    System.exit(1);
+                }
+                nameServerIp = args[1];
+                nameServerPort = Integer.parseInt(args[2]);
+                String filePath = args[3];
+                long offset ;
+                try {
+                    offset = Integer.parseInt(args[3]);
+                } catch (NumberFormatException e) {
+                    offset = 0;
+                }
+                client = new Client(nameServerIp, nameServerPort);
+                System.out.println("Reading...");
+                client.readFile(filePath, offset);
+                System.out.println("Read !");
+                break;
             default:
                 System.err.println("Unknown command: " + cmd);
                 printHelp();
@@ -58,6 +79,7 @@ public class CLI {
         System.out.println("  nameserver <port>                              Start the NameServer on port");
         System.out.println("  dataserver <uuid> <nameServerIp> <nameServerPort> <dataServerPort>  Start a DataServer");
         System.out.println("  put <serverIp> <port> <path>                   Upload file to NameServer");
+        System.out.println("get <nameServerIp> <nameServerPort> <filePath> [offset]      Retrieve a file from the server");
         System.out.println("  help                                           Show this help");
     }
 }

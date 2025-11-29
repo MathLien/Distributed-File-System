@@ -31,7 +31,7 @@ public class DataServer {
         this.nameServerIPAddress = nameServerIPAddress;
         this.nameServerPort = nameServerPort;
         this.dataServerPort = dataServerPort;
-        this.DATA_DIR = "/home/cocci1/Documents/cours-info/Distributed-File-System/test_data/" + uuid;
+        this.DATA_DIR = "test_data/" + uuid;
         this.occupiedSpace = 0;
         this.freeSpace = 100 * 1024 * 1024; // 100MB default
         

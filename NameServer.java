@@ -205,7 +205,7 @@ public class NameServer {
                     obj = ois.readObject();
                 } catch (EOFException e) {
                     // Client closed connection normally
-                    System.out.println("Connection closed");
+                    System.out.println("Connection closed normally");
                     break;
                 }
 
@@ -241,7 +241,7 @@ public class NameServer {
                         oos.writeObject(new ErrorMessage("Write failed: " + e.getMessage(), chunk.fileName, chunk.chunkID));
                         oos.flush();
                     }
-                } else if (obj instanceof CloseFileMessage) {//For future use
+                } else if (obj instanceof EndOfFile) {//For future use
                     oos.writeObject(new OkMessage());
                     oos.flush();
                     break;
@@ -356,7 +356,7 @@ public class NameServer {
             throw new FileNotFound();
             //TODO : Notify the client of this.
         }
-        final int startFromChunk = (int) (offset/fileMetadata.ChunkSize);
+        final int startFromChunk = (int) (offset/ FileMetadata.ChunkSize);
 
 
     }
