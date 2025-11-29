@@ -22,7 +22,7 @@ case "$1" in
     rm  $PidsFile
     echo
     echo "Serveurs arrêté"
-    exit
+
     ;;
 
   'start')
@@ -34,11 +34,13 @@ case "$1" in
     java -classpath $BuildDir CLI dataserver n1 127.0.0.1 9000 8001 & (echo $! >> $PidsFile)
     java -classpath $BuildDir CLI dataserver n2 127.0.0.1 9000 8002 & (echo $! >> $PidsFile)
     java -classpath $BuildDir CLI dataserver n3 127.0.0.1 9000 8003 & (echo $! >> $PidsFile)
+    sleep 0.5
     echo
     echo "Serveurs démarrés"
+    echo "PIDs : "
+    cat $PidsFile
     echo
 
-    exit
     ;;
 
   *)

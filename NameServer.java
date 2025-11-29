@@ -18,14 +18,8 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import exceptions.FileExists;
-import networkMessages.CloseFileMessage;
-import networkMessages.CreateFileMessage;
-import networkMessages.ErrorMessage;
-import networkMessages.GetMetadataMessage;
-import networkMessages.MetadataResponse;
-import networkMessages.OkMessage;
-import networkMessages.RegisterDataServerMessage;
+import exceptions.*;
+import networkMessages.*;
 
 public class NameServer {
     private String uuid;
@@ -59,7 +53,7 @@ public class NameServer {
             server.closeConnection();
         }
     }
-    
+    //Class used to store the state of the name server, when shutted down (so if everything is restated the same way, it is in the same state).
     private static class NameServerState implements Serializable {
         //@Serial
         //private static final long serialVersionUID = 1L;
@@ -245,7 +239,7 @@ public class NameServer {
                         oos.writeObject(new ErrorMessage("Write failed: " + e.getMessage(), chunk.fileName, chunk.chunkID));
                         oos.flush();
                     }
-                } else if (obj instanceof CloseFileMessage) {
+                } else if (obj instanceof CloseFileMessage) {//For future use
                     oos.writeObject(new OkMessage());
                     oos.flush();
                     break;
@@ -349,7 +343,21 @@ public class NameServer {
         }
     }
 
+    /**
+     *
+     * @param filePath
+     * @param offset The offset, in byte, to read from (0 means from the beginning)
+     */
+    private void readFile(String filePath, long offset) throws FileNotFound {
+        FileMetadata fileMetadata = fileMap.get(filePath);
+        if (fileMetadata == null) {
+            throw new FileNotFound();
+            //TODO : Notify the client of this.
+        }
+        final int startFromChunk = (int) (offset/fileMetadata.ChunkSize);
 
+
+    }
 
 
 }
