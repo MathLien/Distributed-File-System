@@ -9,7 +9,7 @@
 ## Please note this is a BASH SCRIPT, it will NOT WORK ON WINDOWS, except with some workarounds or WSL.
 
 PidsFile=".PidsFile.txt"
-BuildDir="out/production/Distributed-File-System"
+BuildDir="."
 
 #Selon le premier argument
 case "$1" in

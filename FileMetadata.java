@@ -2,6 +2,7 @@ import java.io.Serializable;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class FileMetadata implements Serializable {
@@ -48,7 +49,7 @@ public class FileMetadata implements Serializable {
         setChunkHash(chunk.chunkID, hasheur.digest());
     }
 
-    private boolean validateChunk(Chunk chunk){
+    public boolean validateChunk(Chunk chunk){
         assert chunk.fileID == id;
         final MessageDigest hasheur;
         try {
@@ -57,7 +58,7 @@ public class FileMetadata implements Serializable {
             throw new RuntimeException(e); //Mais ça ne devrait pas arriver, MD5 existe non ?
         }
         hasheur.update(chunk.getData());
-        return chunksHash.get(chunk.chunkID) == hasheur.digest();
+        return Arrays.equals(chunksHash.get(chunk.chunkID), hasheur.digest());
     }
 
     public void addServerToChunk(int chunkID, String uuid) {

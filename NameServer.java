@@ -390,9 +390,11 @@ public class NameServer {
 
                     Object dataServerResponse = ois.readObject();
                     if (dataServerResponse instanceof Chunk chunk) {
-                        client_oos.writeObject(chunk);
-                        client_oos.flush();
-                        break;
+                        if (fileMetadata.validateChunk(chunk)) {
+                            client_oos.writeObject(chunk);
+                            client_oos.flush();
+                            break;
+                        }
                     }
                 }
             }
@@ -400,8 +402,8 @@ public class NameServer {
             if (i == chunkLocations.size()) {
                 throw new RuntimeException("Chunk not found on any server. This should not happen.");
             }
-            client_oos.writeObject(new EndOfFile());
         }
+        client_oos.writeObject(new EndOfFile());
     }
 
 
