@@ -119,7 +119,7 @@ public class Client {
         }
     }
 
-    // TODO:readFile method
+
     public void readFile(String pathName, long offset) throws IOException {
         try (Socket socket = new Socket(nameServerIPAddress, nameServerPort);
              ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
@@ -128,6 +128,7 @@ public class Client {
 
             //Query the nameserver
             oos.writeObject(new ReadFile(pathName, offset));
+            oos.flush();
 
             while (true){
                 Object response = null;

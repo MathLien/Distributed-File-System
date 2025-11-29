@@ -194,8 +194,8 @@ public class NameServer {
         ObjectOutputStream oos =null;
         ObjectInputStream ois = null;
         try {
-             oos = new ObjectOutputStream(client.getOutputStream());
-             ois = new ObjectInputStream(client.getInputStream());
+            oos = new ObjectOutputStream(client.getOutputStream());
+            ois = new ObjectInputStream(client.getInputStream());
 
             Object obj;
             while (true) {
@@ -248,11 +248,24 @@ public class NameServer {
                     updateLastSeen(msg.uuid);
                     isADataServer = true;
                     break;
+                } else if (obj instanceof ReadFile readFile) {
+                    try {
+                        readFile(readFile.pathName, readFile.offset, oos, ois);
+                    } catch (FileNotFound e) {
+                        oos.writeObject(new ErrorMessage("The file you requested does not exist.", readFile.pathName));
+                    } catch (IOException e) {
+                        oos.writeObject(new ErrorMessage("An internal network IO error occured, sorry"));
+                    }
+
+
                 } else {
                     oos.writeObject(new ErrorMessage("Unknown message"));
                     oos.flush();
                 }
             }
+        } catch (ClassNotFoundException e){
+            //This should not happen, but just in case.
+            System.err.println("A unknown message has been received, coming from something else. (Maybe different version even if there is only one)");
         } catch (Exception e) {
             System.err.println("Error handling client: " + e.getMessage());
             e.printStackTrace();
@@ -355,29 +368,39 @@ public class NameServer {
             //TODO : Notify the client of this.
         }
         final int startFromChunk = (int) (offset/ FileMetadata.ChunkSize);
-        int chunkRead = 0; // number of chunks that have been read
-        // for each chunk > startFromChunk, communicate with DataServer of the
+
+
         List<List<String>> chunksLocations = fileMetadata.getChunksLocations(); // fileMap: entrée: file paths, sortie: file metadat
-        List<String> chunkLocations = chunksLocations.get(startFromChunk); // locations of the replicas of the chunk
+        // number of chunks that have been read
+        for (int chunkRead = 0; chunkRead + startFromChunk < chunksLocations.size(); chunkRead++) {
 
-        int i = 0;
-        while (true) {
-            String chunkLocation = chunkLocations.get(i);
-            ServerStatus dataServer = dataServers.get(chunkLocation);
-            // Establish connection with server
-            synchronized (dataServer.getConnectionLock()) {
-                ObjectOutputStream oos = dataServer.getOos();
-                ObjectInputStream ois = dataServer.getOis();
-                oos.writeObject(new ReadChunk(fileMetadata.id, startFromChunk + chunkRead));
-                oos.flush();
+            // for each chunk > startFromChunk, communicate with DataServer of the
+            List<String> chunkLocations = chunksLocations.get(startFromChunk); // locations of the replicas of the chunk
 
-                Object dataServerResponse = ois.readObject();
-                if (dataServerResponse instanceof Chunk chunk) {
-                    client_oos.writeObject(dataServerResponse);
-                    client_oos.flush();
+            int i = 0;
+            for (; i < chunkLocations.size(); i++) {
+                String dataServerId = chunkLocations.get(i);
+                ServerStatus dataServer = dataServers.get(dataServerId);
+                // Establish connection with server to request
+                synchronized (dataServer.getConnectionLock()) {
+                    ObjectOutputStream oos = dataServer.getOos();
+                    ObjectInputStream ois = dataServer.getOis();
+                    oos.writeObject(new ReadChunk(fileMetadata.id, startFromChunk + chunkRead));
+                    oos.flush();
+
+                    Object dataServerResponse = ois.readObject();
+                    if (dataServerResponse instanceof Chunk chunk) {
+                        client_oos.writeObject(chunk);
+                        client_oos.flush();
+                        break;
+                    }
                 }
-                ++i;
             }
+
+            if (i == chunkLocations.size()) {
+                throw new RuntimeException("Chunk not found on any server. This should not happen.");
+            }
+            client_oos.writeObject(new EndOfFile());
         }
     }
 

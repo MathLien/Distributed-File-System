@@ -1,6 +1,8 @@
 package networkMessages;
 
-public class ReadChunk {
+import java.io.Serializable;
+
+public class ReadChunk implements Serializable {
     public final long fileID;
     public final int chunkID;
 

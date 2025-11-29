@@ -7,6 +7,10 @@ public class EndOfFile implements Serializable {
     public EndOfFile(String fileName) {
         this.fileName = fileName;
     }
+
+    public EndOfFile() {
+        this.fileName = null;
+    }
 }
 
 
