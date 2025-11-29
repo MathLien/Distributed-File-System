@@ -34,7 +34,8 @@ cd .\out\production\Distributed-File-System\
 ## Writing a file
 
 ```cmd
-java CLI put 127.0.0.1 8000 /home
+touch file.txt
+java CLI put 127.0.0.1 8000 file.txt
 ```
 
 ## Reading a file

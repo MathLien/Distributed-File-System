@@ -162,8 +162,6 @@ public class NameServer {
         }
     }
 
-    // TODO: readChunk method
-
     public void start(int port) throws IOException {
         // Start periodic save timer (every 3 minutes)
         Timer saveTimer = new Timer(true); // daemon thread
@@ -350,15 +348,37 @@ public class NameServer {
      * @param filePath
      * @param offset The offset, in byte, to read from (0 means from the beginning)
      */
-    private void readFile(String filePath, long offset) throws FileNotFound {
+    private void readFile(String filePath, long offset, ObjectOutputStream client_oos, ObjectInputStream client_ois) throws FileNotFound, IOException, ClassNotFoundException {
         FileMetadata fileMetadata = fileMap.get(filePath);
         if (fileMetadata == null) {
             throw new FileNotFound();
             //TODO : Notify the client of this.
         }
         final int startFromChunk = (int) (offset/ FileMetadata.ChunkSize);
+        int chunkRead = 0; // number of chunks that have been read
+        // for each chunk > startFromChunk, communicate with DataServer of the
+        List<List<String>> chunksLocations = fileMetadata.getChunksLocations(); // fileMap: entrée: file paths, sortie: file metadat
+        List<String> chunkLocations = chunksLocations.get(startFromChunk); // locations of the replicas of the chunk
 
+        int i = 0;
+        while (true) {
+            String chunkLocation = chunkLocations.get(i);
+            ServerStatus dataServer = dataServers.get(chunkLocation);
+            // Establish connection with server
+            synchronized (dataServer.getConnectionLock()) {
+                ObjectOutputStream oos = dataServer.getOos();
+                ObjectInputStream ois = dataServer.getOis();
+                oos.writeObject(new ReadChunk(fileMetadata.id, startFromChunk + chunkRead));
+                oos.flush();
 
+                Object dataServerResponse = ois.readObject();
+                if (dataServerResponse instanceof Chunk chunk) {
+                    client_oos.writeObject(dataServerResponse);
+                    client_oos.flush();
+                }
+                ++i;
+            }
+        }
     }
 
 

@@ -16,6 +16,11 @@ public class FileMetadata implements Serializable {
      * The MD5 hash of the chunks
      */
     public List<byte[]> chunksHash = new ArrayList<>();
+
+    public List<List<String>> getChunksLocations() {
+        return chunksLocations;
+    }
+
     private List<List<String>> chunksLocations = new ArrayList<>(); //TODO : Optimiser ça
 
     public FileMetadata(long id, String pathName) {
