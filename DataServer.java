@@ -1,4 +1,7 @@
 import java.io.EOFException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -9,6 +12,7 @@ import java.nio.file.Path;
 
 import networkMessages.ErrorMessage;
 import networkMessages.OkMessage;
+import networkMessages.ReadChunk;
 import networkMessages.RegisterDataServerMessage;
 
 public class DataServer {
@@ -31,7 +35,7 @@ public class DataServer {
         this.nameServerIPAddress = nameServerIPAddress;
         this.nameServerPort = nameServerPort;
         this.dataServerPort = dataServerPort;
-        this.DATA_DIR = "test_data/" + uuid;
+        this.DATA_DIR = "test_data/" + uuid +"/";
         this.occupiedSpace = 0;
         this.freeSpace = 100 * 1024 * 1024; // 100MB default
         
@@ -120,6 +124,17 @@ public class DataServer {
                                 chunk.fileName, chunk.chunkID));
                         oos.flush();
                     }
+                }else if (obj instanceof ReadChunk readChunk) {
+                    try{
+                        Chunk chunk = readChunk(readChunk.fileID, readChunk.chunkID);
+                        oos.writeObject(chunk);
+                    } catch (FileNotFoundException e) {
+                        oos.writeObject(new ErrorMessage("Chunk not found on this server"));
+                    } catch (IOException e){
+                        oos.writeObject(new ErrorMessage("Random IOexception occured, sorry"));
+                    } finally {
+                        oos.flush();
+                    }
                 } else {
                     oos.writeObject(new ErrorMessage("Unknown message"));
                     oos.flush();
@@ -152,6 +167,24 @@ public class DataServer {
     }
 
     // TODO: readChunk method
+
+    /**
+     * Given a fileID and a chunk Id, build the corresponding java object
+     * @param fileID
+     * @param chunkID
+     * @return Chunk with data set to the content of that chunk.
+     * @throws IOException
+     */
+    private Chunk readChunk(long fileID, int chunkID) throws IOException {
+        final String fileName = String.valueOf(fileID) + '-' + String.valueOf(chunkID);
+        return
+                new Chunk(
+                        fileID,
+                        null,
+                        chunkID,
+                        Files.readAllBytes(Path.of(DATA_DIR , fileName))
+                );
+    }
 
     private void acknowledgeToLeader(long fileID, int chunkID) {
         // TODO: Implement acknowledgment to NameServer if needed
