@@ -42,6 +42,7 @@ public class DataServer {
         // Create data directory if it doesn't exist
         try {
             Files.createDirectories(Path.of(DATA_DIR));
+            updateOccupiedSpace();
         } catch (IOException e) {
             System.err.println("Failed to create data directory: " + e.getMessage());
         }
@@ -53,10 +54,23 @@ public class DataServer {
             System.out.println("DataServer " + uuid + " listening on port " + dataServerPort);
 
             registerWithNameServer();
-            Socket client = serverSocket.accept();
+            //Socket client = serverSocket.accept();
             //new Thread(() -> handleClient(client)).start();
-
         }
+    }
+    public void updateOccupiedSpace(){
+        long length = 0;
+        File[] files = new File(DATA_DIR).listFiles();
+
+        assert files != null;
+        int count = files.length;
+
+        for (File file : files) {
+            if (file.isFile()) {
+                length += file.length();
+            }
+        }
+        this.occupiedSpace = length;
     }
 
     private void registerWithNameServer() {
