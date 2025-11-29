@@ -22,11 +22,12 @@ public class Client {
         this.nameServerIPAddress = nameServerIPAddress;
         this.nameServerPort = nameServerPort;
     }
-    /**
-    Cette fonction sert a traiter l'eventuel message d'erreur envoyé par le serveur
-    si c'en est un, ca cree juste un message a arficher qyi concatene le retour serveur et "l'operation"
-    */
+
     private void checkForError(Object response, String operation) throws IOException {
+        /*
+        This function processes the potential error message sent by the server. If message error, than prints a
+        readable message indicating the file name or chunk ID.
+        */
         if (response instanceof ErrorMessage error) {
             StringBuilder errorMsg = new StringBuilder(operation);
             errorMsg.append(" failed: ").append(error.message);
@@ -46,7 +47,7 @@ public class Client {
         String fileName = Path.of(path).getFileName().toString();
         int chunkSize = (int) FileMetadata.ChunkSize;
         int chunkIndex = 0;
-        //On cree les flux reseau oos et ois, et un flux pour le fichier a envoyer in
+        //On cree les flux réseau oos et ois, et un flux pour le fichier a envoyer in
         try (Socket socket = new Socket(nameServerIPAddress, nameServerPort);
              ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
              ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
@@ -86,7 +87,7 @@ public class Client {
                     //If the buffer is full, just send it as is
                     data = buffer;
                 } else {
-                    //Otherwise remove the trailing space to avoid sending these random datas (that woukd be handled as part of the file by the server)
+                    //Otherwise remove the trailing space to avoid sending these random datas (that would be handled as part of the file by the server)
                     data = new byte[read];
                     System.arraycopy(buffer, 0, data, 0, read);
                 }
@@ -105,7 +106,7 @@ public class Client {
                     buffer = new byte[chunkSize];
                 }
             }
-            //Send a closefile message that coukd be useful with a lock system but is currently unused.
+            //Send a closefile message that could be useful with a lock system but is currently unused.
             oos.writeObject(new CloseFileMessage(fileName));
             oos.flush();
             Object closeAck = ois.readObject();
@@ -115,6 +116,9 @@ public class Client {
             }
         }
     }
+
+    // TODO:readFile method
+    //public void readFile
 }
 
 

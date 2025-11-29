@@ -16,5 +16,7 @@ public class Chunk implements Serializable {
     public byte[] getData() {
         return data;
     }
+
+    // TODO: getChunkID method
 }
 

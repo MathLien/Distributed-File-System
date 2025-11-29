@@ -168,6 +168,8 @@ public class NameServer {
         }
     }
 
+    // TODO: readChunk method
+
     public void start(int port) throws IOException {
         // Start periodic save timer (every 3 minutes)
         Timer saveTimer = new Timer(true); // daemon thread
