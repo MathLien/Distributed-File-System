@@ -1,10 +1,11 @@
 # Project - Distributed File System
 ## Starting up the servers
-After building the java files, do the following.
+After building the java files, do the following **from the build directory**. 
+
+`.\out\production\Distributed-File-System\` probably if you are using IntelliJ.
 ### In Linux (or any bash terminal)
 In a terminal,
 ```bash
-cd ./out/production/Distributed-File-System/
 ./launcher.sh start
 ```
 You can also stop all the running servers with `./launcher.sh stop`, otherwise they will keep running even after you close your terminal.
@@ -18,34 +19,27 @@ In each terminal, type in the following commands.
 
 #### Terminal 1 - Name Server
 ```cmd
-cd .\out\production\Distributed-File-System\
 java CLI nameserver 9000
 ```
 #### Terminal 2 - Data Server 1
 ```cmd
-cd .\out\production\Distributed-File-System\
 java CLI dataserver 1 127.0.0.1 9000 8001
 ```
 #### Terminal 3 - Data Server 2
 ```cmd
-cd .\out\production\Distributed-File-System\
 java CLI dataserver 2 127.0.0.1 9000 8002
 ```
 #### Terminal 4 - Data Server 3
 ```cmd
-cd .\out\production\Distributed-File-System\
 java CLI dataserver 3 127.0.0.1 9000 8003
 ```
 #### Terminal 5 - Data Server 4
 ```cmd
-cd .\out\production\Distributed-File-System\
 java CLI dataserver 3 127.0.0.1 9000 8004
 ```
 #### Terminal 6 - Client
-Open a 6th terminal to write files (put) and read files (read).
-```cmd
-cd .\out\production\Distributed-File-System\
-```
+Open a 6th terminal to write files (put) and read files (read). (See below)
+
 ## Using the CLI
 Even if this programm is intended to be included in other projects, we still provide a CLI to use it manually.
 To run it, write `java CLI <your CLI command>`, or just `java CLI` to get a help message.
