@@ -134,6 +134,7 @@ public class Client {
                 Object response = null;
                 try { //To handle the class not found exception.
                     response = ois.readObject();
+                    System.out.println();
                 } catch (ClassNotFoundException e) {
                     throw new RuntimeException(e);
                 }

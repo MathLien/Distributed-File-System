@@ -1,10 +1,11 @@
 # Project - Distributed File System
 ## Setting up the servers
-
+After building the java files, do the following.
 ### In Linux or Ubuntu
 In a terminal,
 ```bash
-./launcher.sh
+cd ./out/production/Distributed-File-System/
+./launcher.sh start
 ```
 
 In another terminal, type in the commands.
@@ -45,11 +46,13 @@ cd .\out\production\Distributed-File-System\
 ```
 
 ## Writing a file
-
+First, create a file in the current directory. 
+For example, do the following in a bash terminal:
 ```bash
 touch file.txt
 echo "This is text" >> file.txt
 ```
+Put the file on the distributed file system:
 ```bash
 java CLI put 127.0.0.1 9000 file.txt
 ```
@@ -57,5 +60,5 @@ java CLI put 127.0.0.1 9000 file.txt
 ## Reading a file
 To read _file.txt_
 ```bash
-java CLI read 127.0.0.1 9000 file.txt
+java CLI read 127.0.0.1 9000 file.txt 1
 ```
