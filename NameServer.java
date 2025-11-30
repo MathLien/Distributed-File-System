@@ -1,4 +1,5 @@
 
+import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.io.EOFException;
@@ -391,6 +392,15 @@ public class NameServer {
                     Object dataServerResponse = ois.readObject();
                     if (dataServerResponse instanceof Chunk chunk) {
                         if (fileMetadata.validateChunk(chunk)) {
+                            //Management of offset between chunks
+                            if (chunkRead == 0 && offset % FileMetadata.ChunkSize != 0){
+                                chunk = new Chunk(
+                                     chunk.fileID,
+                                     chunk.fileName,
+                                     chunk.chunkID,
+                                     Arrays.copyOfRange(chunk.getData(), (int) (offset % FileMetadata.ChunkSize), chunk.getData().length)
+                                );
+                            }
                             client_oos.writeObject(chunk);
                             client_oos.flush();
                             break;

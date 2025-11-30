@@ -58,8 +58,8 @@ public class CLI {
                 String filePath = args[3];
                 long offset ;
                 try {
-                    offset = Integer.parseInt(args[3]);
-                } catch (NumberFormatException e) {
+                    offset = Integer.parseInt(args[4]);
+                } catch (Exception e) {
                     offset = 0;
                 }
                 client = new Client(nameServerIp, nameServerPort);
